@@ -196,10 +196,10 @@ class SurahProgressIn(BaseModel):
 
 
 # === Surah Progress Output ===
-class FrequentErrorOut(BaseModel):
-    ayah_id: int
-    text: str
-    error_count: int
+class SurahProgressOut(BaseModel):
+    surah_id: int
+    surah_name: str
+    percentage: float
     created_at: Optional[str]
     updated_at: Optional[str]
 
