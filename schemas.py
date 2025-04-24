@@ -1,3 +1,4 @@
+import datetime
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from uuid import UUID
@@ -176,6 +177,13 @@ class FrequentErrorOut(BaseModel):
     created_at: Optional[str]
     updated_at: Optional[str]
 
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
 
 # === Surah Progress Input ===
 class SurahProgressIn(BaseModel):
@@ -188,12 +196,19 @@ class SurahProgressIn(BaseModel):
 
 
 # === Surah Progress Output ===
-class SurahProgressOut(BaseModel):
-    surah_id: int
-    surah_name: str
-    percentage: float
+class FrequentErrorOut(BaseModel):
+    ayah_id: int
+    text: str
+    error_count: int
     created_at: Optional[str]
     updated_at: Optional[str]
+
+    class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
 
 
 # === Quran Memorization Output ===
