@@ -1,4 +1,5 @@
 import datetime
+from datetime import datetime  # ✅ this must exist
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from uuid import UUID
@@ -174,8 +175,8 @@ class FrequentErrorOut(BaseModel):
     ayah_id: int
     text: str
     error_count: int
-    created_at: Optional[str]
-    updated_at: Optional[str]
+    created_at: Optional[datetime]  # 👈 not str
+    updated_at: Optional[datetime]  # 👈 not str
 
     class Config:
         orm_mode = True
@@ -200,8 +201,8 @@ class SurahProgressOut(BaseModel):
     surah_id: int
     surah_name: str
     percentage: float
-    created_at: Optional[str]
-    updated_at: Optional[str]
+    created_at: Optional[datetime]  # 👈 not str
+    updated_at: Optional[datetime]  # 👈 not str
 
     class Config:
         orm_mode = True

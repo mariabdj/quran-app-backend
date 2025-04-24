@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from models import *
 from schemas import *
+from schemas import FrequentErrorOut  # make sure this import is present
 
 #Authentification
 def get_user_by_username(db: Session, username: str):
@@ -237,6 +238,7 @@ def update_frequent_errors(db: Session, user_id: UUID, mushaf_id: int, ayah_ids:
             db.add(new_error)
     db.commit()
 
+
 def get_user_frequent_errors(db: Session, user_id: UUID, mushaf_id: int):
     model = HafsError if mushaf_id == 1 else WarshError
     error_list = db.query(model).filter_by(user_id=user_id).all()
@@ -249,15 +251,17 @@ def get_user_frequent_errors(db: Session, user_id: UUID, mushaf_id: int):
         else:
             verse = db.query(Warsh).filter_by(id=error.ayah_id).first()
             text = verse.aya_text if verse else ""
-        results.append({
-            "ayah_id": error.ayah_id,
-            "text": text,
-            "error_count": error.error_count,
-            "created_at": error.created_at,  # Include created_at
-            "updated_at": error.updated_at,  # Include updated_at
-        })
-    return results
 
+        # ✅ Build a real FrequentErrorOut Pydantic model
+        results.append(FrequentErrorOut(
+            ayah_id=error.ayah_id,
+            text=text,
+            error_count=error.error_count,
+            created_at=error.created_at,
+            updated_at=error.updated_at,
+        ))
+
+    return results
 
 
 # === Surah Progress Handling ===
