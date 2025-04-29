@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware  # Add this import
 from routes import surah, juz, mushaf, hizb, search, tafsir, recitation, auth, progress
 from dotenv import load_dotenv
 
 app = FastAPI()
+
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
@@ -11,6 +13,7 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods (GET, POST, OPTIONS, etc.)
     allow_headers=["*"],  # Allow all headers
 )
+
 load_dotenv(dotenv_path=".env")
 
 # Include the updated routers
