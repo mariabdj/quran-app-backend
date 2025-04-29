@@ -3,6 +3,14 @@ from routes import surah, juz, mushaf, hizb, search, tafsir, recitation, auth, p
 from dotenv import load_dotenv
 
 app = FastAPI()
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins or specify only your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 load_dotenv(dotenv_path=".env")
 
 # Include the updated routers
