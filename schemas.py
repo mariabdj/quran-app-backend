@@ -216,3 +216,8 @@ class SurahProgressOut(BaseModel):
 class QuranMemorizationOut(BaseModel):
     user_id: UUID
     percentage: float
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+

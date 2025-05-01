@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Password - Quran App</title>
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f9fc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #7A90C9;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .message {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>🔐 Reset Your Password</h2>
+  <p>Enter your new password below.</p>
+  <input type="password" id="new-password" placeholder="New Password" />
+  <button onclick="resetPassword()">Update Password</button>
+  <div class="message" id="message"></div>
+</div>
+
+<script>
+  const supabase = supabase.createClient(
+    'https://psisudzbuphruzurwqpy.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
+  );
+
+  async function resetPassword() {
+    const password = document.getElementById('new-password').value;
+    const messageDiv = document.getElementById('message');
+
+    if (!password || password.length < 6) {
+      messageDiv.textContent = '❌ Password must be at least 6 characters.';
+      messageDiv.style.color = 'red';
+      return;
+    }
+
+    const { data, error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      messageDiv.textContent = `❌ ${error.message}`;
+      messageDiv.style.color = 'red';
+    } else {
+      messageDiv.textContent = '✅ Password updated successfully! You can close this page.';
+      messageDiv.style.color = 'green';
+    }
+  }
+</script>
+</body>
+</html>

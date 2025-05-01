@@ -7,6 +7,8 @@ from models import AppUser  # Ajouté pour vérifier l'existence par ID
 from supabase import create_client, Client
 from dotenv import load_dotenv
 import os
+from schemas import ForgotPasswordRequest  # Add this if not present
+
 
 load_dotenv()
 
@@ -19,6 +21,15 @@ print("SUPABASE_KEY =", SUPABASE_KEY[:10], "...")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 router = APIRouter()
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: ForgotPasswordRequest):
+    try:
+        supabase.auth.reset_password_email(payload.email)
+        return {"message": "📧 If the email exists, a reset link has been sent."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Reset failed: {str(e)}")
 
 
 @router.post("/signup", response_model=UserOut)
