@@ -56,31 +56,32 @@
 </div>
 
 <script>
-  const supabase = supabase.createClient(
-    'https://psisudzbuphruzurwqpy.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
-  );
+    const client = supabase.createClient(
+  'https://psisudzbuphruzurwqpy.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
+);
 
-  async function resetPassword() {
-    const password = document.getElementById('new-password').value;
-    const messageDiv = document.getElementById('message');
-
-    if (!password || password.length < 6) {
-      messageDiv.textContent = '❌ Password must be at least 6 characters.';
-      messageDiv.style.color = 'red';
-      return;
+    async function resetPassword() {
+      const password = document.getElementById('new-password').value;
+      const messageDiv = document.getElementById('message');
+  
+      if (!password || password.length < 6) {
+        messageDiv.textContent = '❌ Password must be at least 6 characters.';
+        messageDiv.style.color = 'red';
+        return;
+      }
+  
+      const { data, error } = await client.auth.updateUser({ password });
+  
+      if (error) {
+        messageDiv.textContent = `❌ ${error.message}`;
+        messageDiv.style.color = 'red';
+      } else {
+        messageDiv.textContent = '✅ Password updated successfully! You can close this page.';
+        messageDiv.style.color = 'green';
+      }
     }
-
-    const { data, error } = await supabase.auth.updateUser({ password });
-
-    if (error) {
-      messageDiv.textContent = `❌ ${error.message}`;
-      messageDiv.style.color = 'red';
-    } else {
-      messageDiv.textContent = '✅ Password updated successfully! You can close this page.';
-      messageDiv.style.color = 'green';
-    }
-  }
-</script>
+  </script>
+  
 </body>
 </html>
