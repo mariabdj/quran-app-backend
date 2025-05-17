@@ -64,7 +64,7 @@ def get_hizb_start_page(db: Session, first_verse_id: int):
 
 
 # === MUSHAF PAGES ===
-def get_mushaf_page(db: Session, page_number: int, mushaf_id_filter: Optional[int] = 1):
+def get_mushaf_page(db: Session, page_number: int, mushaf_id_filter: Optional[int] = 20):
     """
     Gets page details from quran.mushaf_pages.
     Note: The original MushafPages table has a mushaf_id column.
