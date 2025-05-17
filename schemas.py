@@ -1,7 +1,7 @@
 import datetime
-from datetime import datetime  # ✅ this must exist
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from datetime import datetime as dt  # Renamed to avoid conflict if you use datetime.datetime
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, List, Union
 from uuid import UUID
 
 
@@ -38,121 +38,147 @@ class UserUpdate(BaseModel):
 # === Chapter (Surah) ===
 class ChapterOut(BaseModel):
     id: int
-    chapter_number: Optional[int]
-    name_simple: Optional[str]
-    name_arabic: Optional[str]
-    pages: Optional[str]
-    verses_count: Optional[int]
+    chapter_number: Optional[int] = None
+    name_simple: Optional[str] = None
+    name_arabic: Optional[str] = None
+    pages: Optional[str] = None # This seems to be a string representing a range e.g. "1-7"
+    verses_count: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # === Hizb ===
 class HizbOut(BaseModel):
     id: int
-    hizb_number: Optional[int]
-    first_verse_id: Optional[int]
-    last_verse_id: Optional[int]
-    verses_count: Optional[int]
+    hizb_number: Optional[int] = None
+    first_verse_id: Optional[int] = None
+    last_verse_id: Optional[int] = None
+    verses_count: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # === Juz ===
 class JuzOut(BaseModel):
     id: int
-    juz_number: Optional[int]
-    first_verse_id: Optional[int]
-    last_verse_id: Optional[int]
-    verses_count: Optional[int]
+    juz_number: Optional[int] = None
+    first_verse_id: Optional[int] = None
+    last_verse_id: Optional[int] = None
+    verses_count: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-# === Verse ===
+# === Verse (Original schemas - can be reused or adapted) ===
 class VerseOut(BaseModel):
     id: int
     verse_key: str
     text: str
-    text_simple: Optional[str]
-    surah: Optional[int]
+    text_simple: Optional[str] = None
+    surah: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
-# === Warsh Verse ===
+# === Warsh Verse (Original schemas - can be reused or adapted) ===
 class WarshVerseOut(BaseModel):
     id: int
-    jozz: Optional[int]
-    page: Optional[str]
-    sura_no: Optional[int]
-    sura_name_ar: Optional[str]
-    aya_no: Optional[int]
-    aya_text: Optional[str]
-    text_simple: Optional[str]
-    verse_count: Optional[int]
+    jozz: Optional[int] = None
+    page: Optional[str] = None
+    sura_no: Optional[int] = None
+    sura_name_ar: Optional[str] = None
+    aya_no: Optional[int] = None
+    aya_text: Optional[str] = None
+    text_simple: Optional[str] = None
+    verse_count: Optional[int] = None
 
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
+# === NEW/UPDATED SEARCH SCHEMAS ===
 
-class SearchResult(BaseModel):
+class AyahResult(BaseModel):
+    """
+    Represents a single Ayah in the search results.
+    """
     verse_id: int
     text: str
+    # You could add more fields here if needed, e.g., surah_number, verse_number, verse_key
+    # For example:
+    # surah_number: Optional[int] = None
+    # ayah_number: Optional[int] = None
+    # verse_key: Optional[str] = None
+
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
+class PageInfoResponse(BaseModel):
+    """
+    Represents the response when a page number is requested.
+    """
+    page_number: int
+
+# The SearchResult from your original file is good for AyahResult. Let's rename it for clarity.
+# class SearchResult(BaseModel):
+#     verse_id: int
+#     text: str
+#
+#     class Config:
+#         orm_mode = True
+# We will use AyahResult instead.
 
 
 # === Mushaf Page ===
 class MushafPageOut(BaseModel):
     id: int
-    page_number: Optional[int]
-    first_verse_id: Optional[int]
-    last_verse_id: Optional[int]
+    page_number: Optional[int] = None
+    first_verse_id: Optional[int] = None
+    last_verse_id: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # === Tafsir ===
 class TafsirOut(BaseModel):
     id: int
-    verse_id: Optional[int]
-    language_id: Optional[int]
-    text_: Optional[str]
+    verse_id: Optional[int] = None
+    language_id: Optional[int] = None
+    text_: Optional[str] = Field(None, alias="text") # Alias if your DB field is 'text'
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+        populate_by_name = True
 
 
 # === Translation ===
 class TranslationOut(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     sura: int
     ayah: int
-    ayah_key: Optional[str]
+    ayah_key: Optional[str] = None
     text: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 
 # === Verse Page mapping ===
 class VersePageOut(BaseModel):
     id: int
-    verse_id: Optional[int]
-    page_id: Optional[int]
-    page_number: Optional[int]
+    verse_id: Optional[int] = None
+    page_id: Optional[int] = None
+    page_number: Optional[int] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # === Recitation Interval Input ===
@@ -175,13 +201,13 @@ class FrequentErrorOut(BaseModel):
     ayah_id: int
     text: str
     error_count: int
-    created_at: Optional[datetime]  # 👈 not str
-    updated_at: Optional[datetime]  # 👈 not str
+    created_at: Optional[dt] = None
+    updated_at: Optional[dt] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         json_encoders = {
-            datetime: lambda v: v.isoformat()
+            dt: lambda v: v.isoformat() if v else None
         }
 
 
@@ -192,32 +218,35 @@ class SurahProgressIn(BaseModel):
     mushaf_id: int
     surah_id: int
     ayah_ids: List[int]
-    created_at: Optional[str]
-    updated_at: Optional[str]
+    # created_at and updated_at are usually handled by the DB or server, not input
+    # created_at: Optional[str] = None
+    # updated_at: Optional[str] = None
 
 
 # === Surah Progress Output ===
 class SurahProgressOut(BaseModel):
     surah_id: int
-    surah_name: str
+    surah_name: str # You'll need to fetch this in your route/crud
     percentage: float
-    created_at: Optional[datetime]  # 👈 not str
-    updated_at: Optional[datetime]  # 👈 not str
+    created_at: Optional[dt] = None
+    updated_at: Optional[dt] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         json_encoders = {
-            datetime: lambda v: v.isoformat()
+            dt: lambda v: v.isoformat() if v else None
         }
 
 
 
 # === Quran Memorization Output ===
 class QuranMemorizationOut(BaseModel):
-    user_id: UUID
+    user_id: UUID # Should probably be str if that's how you query it elsewhere
     percentage: float
+
+    class Config:
+        from_attributes = True
 
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
-
