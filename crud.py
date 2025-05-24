@@ -75,8 +75,10 @@ def create_app_user(db: Session, user_id: UUID, username: str, email: str, phone
 
 def update_user_info(db: Session, user_id: UUID, new_data: dict):
     user = db.query(AppUser).filter(AppUser.id == user_id).first()
-    if not user: return None
-    for key, value in new_data.items(): setattr(user, key, value)
+    if not user:
+        return None
+    for key, value in new_data.items():
+        setattr(user, key, value)
     db.commit()
     db.refresh(user)
     return user
@@ -106,7 +108,7 @@ def get_hizb_start_page(db: Session, first_verse_id: int): # first_verse_id here
 
 # //CHANGE TO THE OLD (If this was different in your absolute first version and you need that specific old structure for non-search reasons)
 # This function seems standard for fetching Mushaf page details.
-def get_mushaf_page(db: Session, page_number: int, mushaf_id_filter: Optional[int] = 1):
+def get_mushaf_page(db: Session, page_number: int, mushaf_id_filter: Optional[int] = 20):
     return db.query(MushafPages).filter(
         MushafPages.page_number == page_number,
         MushafPages.mushaf_id == mushaf_id_filter
@@ -114,61 +116,54 @@ def get_mushaf_page(db: Session, page_number: int, mushaf_id_filter: Optional[in
 
 # --- Verses (Display Logic - Bismillah etc. Assumed to be as per your latest version) ---
 def get_verses_in_page(db: Session, first_verse_id: int, last_verse_id: int):
-    verses_query = db.query(Verse).filter(
+    verses = db.query(Verse).filter(
         Verse.id >= first_verse_id,
         Verse.id <= last_verse_id
-    ).order_by(Verse.id)
+     ).order_by(Verse.id).all() # Added order_by for consistency
     
     verses_on_page = verses_query.all()
     results = []
-    for verse_obj in verses_on_page: 
-        display_verse = Verse(
-            id=verse_obj.id, 
-            verse_key=verse_obj.verse_key, 
-            text=verse_obj.text, 
-            text_simple=verse_obj.text_simple, 
-            surah=verse_obj.surah
-        )
-        if display_verse.verse_key and ":" in display_verse.verse_key:
+    for verse in verses:
+        if verse.verse_key and ":" in verse.verse_key:
             try:
-                surah_id_val, verse_number_val = map(int, display_verse.verse_key.split(":"))
-                if verse_number_val == 1:
-                    surah_info = db.query(Chapters).filter(Chapters.id == surah_id_val).first() 
+                surah_id, verse_number = map(int, verse.verse_key.split(":"))
+                if verse_number == 1: # Add Bismillah and Surah name for first verse of Surah
+                    surah_info = db.query(Chapters).filter(Chapters.id == surah_id).first() # Use Chapters.id
                     if surah_info and surah_info.name_arabic:
-                        current_text = display_verse.text if display_verse.text else ""
-                        bismillah_text_val = "بسم الله الرحمن الرحيم\n" if surah_id_val != 9 and (surah_info.bismillah_pre is True) else ""
-                        display_verse.text = f"سورة {surah_info.name_arabic.strip()}\n{bismillah_text_val}{current_text}"
-            except ValueError: 
-                pass 
-        results.append(display_verse)
+                        # Ensure text is not None before prepending
+                        current_text = verse.text if verse.text else ""
+                        # For Surah At-Tawbah (ID 9), Bismillah is not recited.
+                        bismillah_text = "بسم الله الرحمن الرحيم\n" if surah_id != 9 and surah_info.bismillah_pre else ""
+                        verse.text = f"سورة {surah_info.name_arabic.strip()}\n{bismillah_text}{current_text}"
+            except ValueError:
+                # Skip malformed keys or log an error
+                pass
+        results.append(verse)
     return results
 
 def get_warsh_verses_in_page(db: Session, page: str):
-    verses_query = db.query(Warsh).filter(Warsh.page == str(page)).order_by(Warsh.id)
-    verses_on_page = verses_query.all()
-    results = []
-    for verse_obj in verses_on_page:
-        display_verse = Warsh( 
-            id=verse_obj.id, jozz=verse_obj.jozz, page=verse_obj.page, sura_no=verse_obj.sura_no,
-            sura_name_en=verse_obj.sura_name_en, sura_name_ar=verse_obj.sura_name_ar,
-            line_start=verse_obj.line_start, line_end=verse_obj.line_end, aya_no=verse_obj.aya_no,
-            aya_text=verse_obj.aya_text, 
-            text_simple=verse_obj.text_simple, verse_count=verse_obj.verse_count
-        )
-        if display_verse.aya_no == 1 and display_verse.sura_no is not None:
-            chapter_info = db.query(Chapters).filter(Chapters.chapter_number == display_verse.sura_no).first()
-            bismillah_text_val = "بسم الله الرحمن الرحيم\n"
-            if chapter_info:
-                if chapter_info.id == 9: 
-                    bismillah_text_val = ""
-                elif chapter_info.bismillah_pre is False:
-                    bismillah_text_val = ""
-            
-            current_text = display_verse.aya_text if display_verse.aya_text else ""
-            surah_title_str = f"سورة {display_verse.sura_name_ar.strip()}" if display_verse.sura_name_ar else (f"سورة {chapter_info.name_arabic.strip()}" if chapter_info and chapter_info.name_arabic else "سورة")
-            display_verse.aya_text = f"{surah_title_str}\n{bismillah_text_val}{current_text}"
-        results.append(display_verse)
-    return results
+    """ Original function for Warsh, fetches verses for a given page string """
+    # Ensure page is treated as a string for Warsh
+    verses = db.query(Warsh).filter(Warsh.page == str(page)).order_by(Warsh.id).all() # Added order_by
+
+    for verse in verses:
+        if verse.aya_no == 1 and verse.sura_no is not None: # Add Bismillah and Surah name
+            # Surah At-Tawbah (ID 9) does not have Bismillah
+            # Warsh table has sura_name_ar, check if Chapters.bismillah_pre applies or if sura_no 9 is universal
+            chapter_info = db.query(Chapters).filter(Chapters.chapter_number == verse.sura_no).first()
+            bismillah_text = "بسم الله الرحمن الرحيم\n"
+            if chapter_info and chapter_info.id == 9: # Assuming chapter_info.id is the surah number for comparison
+                 bismillah_text = ""
+            elif chapter_info and not chapter_info.bismillah_pre: # If bismillah_pre is explicitly false
+                 bismillah_text = ""
+
+
+            current_text = verse.aya_text if verse.aya_text else ""
+            # Use sura_name_ar from Warsh table itself if available and preferred
+            surah_title = f"سورة {verse.sura_name_ar.strip()}" if verse.sura_name_ar else f"سورة {chapter_info.name_arabic.strip() if chapter_info else ''}"
+            verse.aya_text = f"{surah_title}\n{bismillah_text}{current_text}"
+    return verses
+
 
 # --- Search Related Functions ---
 def get_page_for_surah(db: Session, mushaf_id: int, surah_number: int) -> Optional[int]:
