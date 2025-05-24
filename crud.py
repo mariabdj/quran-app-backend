@@ -415,29 +415,52 @@ def get_memorization_percentage(db: Session, user_id: UUID):
     return db.query(QuranMemorization).filter_by(user_id=user_id).first()
 
 # --- New CRUD Functions for Additional Endpoints (Structure remains the same) ---
-def get_surah_name_by_ayah_id(db: Session, ayah_id: int, language_id: int) -> Optional[str]:
-    # The parameter name is now 'ayah_id' to match the call from search.py
-    # Assuming Ayah.ayah_index is the input ayah_id
-    ayah_info = db.query(Ayah.surah_id).filter(Ayah.ayah_index == ayah_id).first()
-    if not ayah_info or ayah_info.surah_id is None: 
-        return None
-    
-    # Ayah.surah_id should link to Chapters.chapter_number or Chapters.id
-    # Using Chapters.chapter_number as the primary link based on typical Quran DB structures.
-    chapter_info = db.query(Chapters).filter(Chapters.chapter_number == ayah_info.surah_id).first()
-    
-    if not chapter_info: 
-        # Fallback: Check if Ayah.surah_id might be Chapters.id (less common for this relationship)
-        chapter_info = db.query(Chapters).filter(Chapters.id == ayah_info.surah_id).first()
-        if not chapter_info: 
+# //////////////CHANGE MARIA (Backend CRUD function parameter fix)
+# //////////////CHANGE MARIA (crud.py - Added mushaf_id handling for Surah name)
+def get_surah_name_by_ayah_id(db: Session, ayah_id: int, mushaf_id: int, language_id: int) -> Optional[str]:
+    """
+    Retrieves the Surah name for a given Ayah ID, Mushaf ID, and language.
+    - For Hafs (mushaf_id=1), ayah_id is Ayah.ayah_index (which maps to Verse.id).
+    - For Warsh (mushaf_id=2), ayah_id is Warsh.id.
+    """
+    if mushaf_id == 1: # Hafs
+        # Ayah.ayah_index is used to find the surah_id (chapter number)
+        # Then Chapters table is used for the name.
+        # The input 'ayah_id' for Hafs is expected to be the Verse.id / Ayah.ayah_index.
+        ayah_model_info = db.query(Ayah.surah_id).filter(Ayah.ayah_index == ayah_id).first()
+        if not ayah_model_info or ayah_model_info.surah_id is None:
+            return None 
+
+        # ayah_model_info.surah_id is the chapter_number
+        chapter_info = db.query(Chapters).filter(Chapters.chapter_number == ayah_model_info.surah_id).first()
+
+        if not chapter_info:
+            # Fallback if Ayah.surah_id was meant to be Chapters.id (less common but good to check)
+            chapter_info = db.query(Chapters).filter(Chapters.id == ayah_model_info.surah_id).first()
+            if not chapter_info:
+                return None
+
+        if language_id == 9: # Arabic
+            return chapter_info.name_arabic
+        elif language_id == 38: # English
+            return chapter_info.name_simple
+        else:
             return None
 
-    if language_id == 9: # Arabic
-        return chapter_info.name_arabic
-    elif language_id == 38: # English (using name_simple as requested)
-        return chapter_info.name_simple
+    elif mushaf_id == 2: # Warsh
+        # The input 'ayah_id' for Warsh is Warsh.id (the primary key of the Warsh table).
+        warsh_verse_info = db.query(Warsh.sura_name_ar, Warsh.sura_name_en).filter(Warsh.id == ayah_id).first()
+        if not warsh_verse_info:
+            return None
+
+        if language_id == 9: # Arabic
+            return warsh_verse_info.sura_name_ar
+        elif language_id == 38: # English
+            return warsh_verse_info.sura_name_en
+        else:
+            return None
     else:
-        return None # Unsupported language_id
+        return None # Unsupported mushaf_id
 
 def get_random_ayah_from_verse_table(db: Session) -> Optional[Verse]:
     # func.random() is for PostgreSQL. For other DBs, it might be rand() or similar.

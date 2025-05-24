@@ -97,19 +97,29 @@ def get_page_number_for_verse(
     return schemas.PageInfoResponse(page_number=page_num)
 
 # +++ NEW ENDPOINT: AYAH ID TO SURAH NAME (same as before) +++
+# //////////////CHANGE MARIA (search.py - Added mushaf_id to endpoint)
+# +++ UPDATED ENDPOINT: AYAH ID TO SURAH NAME (with mushaf_id) +++
 @router.get("/surah-name-by-ayah/{ayah_id}", response_model=schemas.SurahNameResponse,
-            summary="Get Surah name for a specific Ayah ID",
-            description="Retrieves the Surah name for a given Ayah ID (ayah_index from quran.ayah table) and language ID.")
+            summary="Get Surah name for a specific Ayah ID and Mushaf",
+            description="Retrieves the Surah name for a given Ayah ID, Mushaf ID, and language ID.")
 def get_surah_name_for_ayah(
-    ayah_id: int = Path(..., description="The Ayah ID (ayah_index from quran.ayah table). Example: 1"),
+    ayah_id: int = Path(..., description="The Ayah ID (Verse.id for Hafs, Warsh.id for Warsh). Example: 1"),
+    mushaf_id: int = Query(..., description="Mushaf ID (1 for Hafs, 2 for Warsh). Example: 1"),
     language_id: int = Query(..., description="Language ID (9 for Arabic, 38 for English). Example: 9"),
     db: Session = Depends(get_db)
 ):
     if language_id not in [9, 38]:
-        raise HTTPException(status_code=400, detail="Invalid language_id. Supported: 9 (Arabic), 38 (English).")
-    surah_name = crud.get_surah_name_by_ayah_id(db, ayah_id=ayah_id, language_id=language_id)
+        raise HTTPException(status_code=400, detail="Invalid language_id. Supported: 9 (Arabic) and 38 (English).")
+    if mushaf_id not in [1, 2]:
+        raise HTTPException(status_code=400, detail="Invalid mushaf_id. Supported: 1 (Hafs) and 2 (Warsh).")
+
+    surah_name = crud.get_surah_name_by_ayah_id(db, ayah_id=ayah_id, mushaf_id=mushaf_id, language_id=language_id)
+
     if surah_name is None:
-        raise HTTPException(status_code=404, detail=f"Could not find Surah name for Ayah ID {ayah_id} with language ID {language_id}.")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Could not find Surah name for Ayah ID {ayah_id} in Mushaf {mushaf_id} with language ID {language_id}."
+        )
     return schemas.SurahNameResponse(surah_name=surah_name)
 
 # +++ NEW ENDPOINT: RANDOM AYAH (same as before) +++
