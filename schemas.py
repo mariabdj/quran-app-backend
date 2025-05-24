@@ -107,9 +107,7 @@ class AyahResult(BaseModel):
     Represents a single Ayah in the search results.
     """
     verse_id: int
-    text: str
-    # You could add more fields here if needed, e.g., surah_number, verse_number, verse_key
-    # For example:
+    text: str # This will be the original, non-normalized text from the DB
     # surah_number: Optional[int] = None
     # ayah_number: Optional[int] = None
     # verse_key: Optional[str] = None
@@ -123,15 +121,6 @@ class PageInfoResponse(BaseModel):
     Represents the response when a page number is requested.
     """
     page_number: int
-
-# The SearchResult from your original file is good for AyahResult. Let's rename it for clarity.
-# class SearchResult(BaseModel):
-#     verse_id: int
-#     text: str
-#
-#     class Config:
-#         orm_mode = True
-# We will use AyahResult instead.
 
 
 # === Mushaf Page ===
@@ -218,15 +207,12 @@ class SurahProgressIn(BaseModel):
     mushaf_id: int
     surah_id: int
     ayah_ids: List[int]
-    # created_at and updated_at are usually handled by the DB or server, not input
-    # created_at: Optional[str] = None
-    # updated_at: Optional[str] = None
 
 
 # === Surah Progress Output ===
 class SurahProgressOut(BaseModel):
     surah_id: int
-    surah_name: str # You'll need to fetch this in your route/crud
+    surah_name: str
     percentage: float
     created_at: Optional[dt] = None
     updated_at: Optional[dt] = None
@@ -241,7 +227,7 @@ class SurahProgressOut(BaseModel):
 
 # === Quran Memorization Output ===
 class QuranMemorizationOut(BaseModel):
-    user_id: UUID # Should probably be str if that's how you query it elsewhere
+    user_id: UUID
     percentage: float
 
     class Config:
@@ -250,3 +236,13 @@ class QuranMemorizationOut(BaseModel):
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
+
+class SurahNameResponse(BaseModel):
+    surah_name: str
+
+class RandomAyahResponse(BaseModel):
+    id: int
+    text: str
+
+    class Config:
+        from_attributes = True
