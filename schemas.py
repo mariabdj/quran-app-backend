@@ -1,5 +1,5 @@
 import datetime
-from datetime import datetime as dt  # Renamed to avoid conflict if you use datetime.datetime
+from datetime import datetime as dt 
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List, Union
 from uuid import UUID
@@ -34,14 +34,13 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
 
 
-
 # === Chapter (Surah) ===
 class ChapterOut(BaseModel):
     id: int
     chapter_number: Optional[int] = None
     name_simple: Optional[str] = None
     name_arabic: Optional[str] = None
-    pages: Optional[str] = None # This seems to be a string representing a range e.g. "1-7"
+    pages: Optional[str] = None 
     verses_count: Optional[int] = None
 
     class Config:
@@ -72,63 +71,56 @@ class JuzOut(BaseModel):
         from_attributes = True
 
 
-# === Verse (Original schemas - can be reused or adapted) ===
-class VerseOut(BaseModel):
+# === Verse ===
+class VerseOut(BaseModel): # This is a general output, might be used by other endpoints
     id: int
     verse_key: str
     text: str
-    text_simple: Optional[str] = None
+    text_simple: Optional[str] = None # This column might exist in your DB
     surah: Optional[int] = None
 
     class Config:
         from_attributes = True
 
 
-# === Warsh Verse (Original schemas - can be reused or adapted) ===
-class WarshVerseOut(BaseModel):
+# === Warsh Verse ===
+class WarshVerseOut(BaseModel): # General output for Warsh verses
     id: int
     jozz: Optional[int] = None
     page: Optional[str] = None
     sura_no: Optional[int] = None
     sura_name_ar: Optional[str] = None
+    sura_name_en: Optional[str] = None # Added for consistency if used
     aya_no: Optional[int] = None
     aya_text: Optional[str] = None
     text_simple: Optional[str] = None
     verse_count: Optional[int] = None
 
-
     class Config:
         from_attributes = True
 
-# === NEW/UPDATED SEARCH SCHEMAS ===
+# === SEARCH RELATED SCHEMAS ===
 
-class AyahResult(BaseModel):
-    """
-    Represents a single Ayah in the search results.
-    """
+class AyahResult(BaseModel): # Specifically for search results
     verse_id: int
-    text: str # This will be the original, non-normalized text from the DB
-    # surah_number: Optional[int] = None
-    # ayah_number: Optional[int] = None
-    # verse_key: Optional[str] = None
-
+    text: str 
 
     class Config:
         from_attributes = True
 
 class PageInfoResponse(BaseModel):
-    """
-    Represents the response when a page number is requested.
-    """
     page_number: int
 
-
-# === Mushaf Page ===
+# //CHANGE TO THE OLD (If this was different in your absolute first version and you need that specific old structure)
+# This MushafPageOut is standard. If your "first ever" version was different and needed for non-search reasons,
+# you'd need to compare. For search-related functionalities, this is fine.
 class MushafPageOut(BaseModel):
     id: int
     page_number: Optional[int] = None
     first_verse_id: Optional[int] = None
     last_verse_id: Optional[int] = None
+    # mushaf_id: Optional[int] = None # This was in some model versions, check if needed for non-search
+    # verse_mapping: Optional[dict] = None # Also present in some model versions
 
     class Config:
         from_attributes = True
@@ -139,7 +131,7 @@ class TafsirOut(BaseModel):
     id: int
     verse_id: Optional[int] = None
     language_id: Optional[int] = None
-    text_: Optional[str] = Field(None, alias="text") # Alias if your DB field is 'text'
+    text_: Optional[str] = Field(None, alias="text") 
 
     class Config:
         from_attributes = True
@@ -148,7 +140,7 @@ class TafsirOut(BaseModel):
 
 # === Translation ===
 class TranslationOut(BaseModel):
-    id: Optional[int] = None
+    id: Optional[int] = None # id might not always be present if it's just text
     sura: int
     ayah: int
     ayah_key: Optional[str] = None
@@ -158,12 +150,14 @@ class TranslationOut(BaseModel):
         from_attributes = True
 
 
-
 # === Verse Page mapping ===
+# //CHANGE TO THE OLD (If this was different in your absolute first version)
+# This schema seems specific and likely added during development.
+# If it's not used or was different, you might need to adjust.
 class VersePageOut(BaseModel):
     id: int
     verse_id: Optional[int] = None
-    page_id: Optional[int] = None
+    page_id: Optional[int] = None # page_id might be redundant if page_number is primary
     page_number: Optional[int] = None
 
     class Config:
@@ -200,7 +194,6 @@ class FrequentErrorOut(BaseModel):
         }
 
 
-
 # === Surah Progress Input ===
 class SurahProgressIn(BaseModel):
     user_id: UUID
@@ -212,7 +205,7 @@ class SurahProgressIn(BaseModel):
 # === Surah Progress Output ===
 class SurahProgressOut(BaseModel):
     surah_id: int
-    surah_name: str
+    surah_name: str 
     percentage: float
     created_at: Optional[dt] = None
     updated_at: Optional[dt] = None
@@ -224,10 +217,9 @@ class SurahProgressOut(BaseModel):
         }
 
 
-
 # === Quran Memorization Output ===
 class QuranMemorizationOut(BaseModel):
-    user_id: UUID
+    user_id: UUID 
     percentage: float
 
     class Config:
