@@ -56,6 +56,7 @@ def get_letters_and_harakat(word_normalized_for_content: str, apply_phonetic_nor
         letter_only_string = letter_only_string.replace('ٱ', 'ا').replace('أ', 'ا').replace('إ', 'ا').replace('آ', 'ا')
         letter_only_string = letter_only_string.replace('ص', 'س')
         letter_only_string = letter_only_string.replace('ى', 'ي') # Normalize Alif Maqsura (ى) to Yeh (ي)
+        letter_only_string = letter_only_string.replace('ے', 'ي') # Normalize Alif Maqsura (ى) to Yeh (ي)
 
     harakat_tuples = []
     current_letter_idx = -1
@@ -84,7 +85,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     return previous_row[-1]
 
 def check_word_match(ayah_word_normalized_for_content: str, user_word_normalized_for_content: str,
-                     letter_threshold: float = 0.55, tashkeel_threshold: float = 0.3) -> bool:
+                     letter_threshold: float = 0.50, tashkeel_threshold: float = 0.3) -> bool:
     ayah_letters_compare, ayah_harakat = get_letters_and_harakat(ayah_word_normalized_for_content, apply_phonetic_normalization=True)
     user_letters_compare, user_harakat = get_letters_and_harakat(user_word_normalized_for_content, apply_phonetic_normalization=True)
 
