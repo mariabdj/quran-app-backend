@@ -83,7 +83,7 @@ def levenshtein_distance(s1: str, s2: str) -> int:
     return previous_row[-1]
 
 def check_word_match(ayah_word_normalized_for_content: str, user_word_normalized_for_content: str,
-                     letter_threshold: float = 0.7, tashkeel_threshold: float = 0.5) -> bool:
+                     letter_threshold: float = 0.6, tashkeel_threshold: float = 0.4) -> bool:
     ayah_letters_compare, ayah_harakat = get_letters_and_harakat(ayah_word_normalized_for_content, apply_phonetic_normalization=True)
     user_letters_compare, user_harakat = get_letters_and_harakat(user_word_normalized_for_content, apply_phonetic_normalization=True)
 
