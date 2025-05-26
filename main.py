@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware  # Add this import
 from routes import surah, juz, mushaf, hizb, search, tafsir, recitation, auth, progress
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from ai import router as ai_router # Assuming ai.py is in the same directory or accessible via Python path
+
 
 app = FastAPI()
 
@@ -26,3 +29,9 @@ app.include_router(search.router)
 app.include_router(tafsir.router)
 app.include_router(recitation.router)
 app.include_router(progress.router)
+# Include the AI endpoint router
+app.include_router(ai_router, prefix="/ai", tags=["AI Recitation Analysis"])
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Quran Recitation API"}
