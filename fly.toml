@@ -17,6 +17,7 @@ primary_region = 'mad'
   processes = ['app']
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  cpu_kind = "performance"
   cpus = 1
+  memory = "2gb"
+
