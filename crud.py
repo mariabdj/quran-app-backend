@@ -475,25 +475,106 @@ def get_user_frequent_errors(db: Session, user_id: UUID, mushaf_id: int) -> List
 
 # === Surah Progress Handling ===
 def update_surah_progress(db: Session, user_id: UUID, mushaf_id: int, surah_id: int, ayah_ids: List[int]):
+    print(f"\n--- update_surah_progress START ---")
+    print(f"INPUT: user_id='{user_id}', mushaf_id={mushaf_id}, surah_id={surah_id}, ayah_ids={ayah_ids}")
+
     ProgressModel = HafsSurahProgress if mushaf_id == 1 else WarshSurahProgress
     ErrorModel = HafsError if mushaf_id == 1 else WarshError
+    print(f"LOG: Using ProgressModel: {ProgressModel.__name__}, ErrorModel: {ErrorModel.__name__}")
     
-    # Get total ayahs in the surah
+    # --- Start: Original logic for getting total_ayahs ---
     if mushaf_id == 1: # Hafs
-        chapter_info = db.query(Chapters.verses_count).filter(Chapters.id == surah_id).first() # Assuming Chapters.id is surah number
-        total_ayahs = chapter_info[0] if chapter_info else 0
-    else: # Warsh
-        # Get verse_count for this surah_id (sura_no) from Warsh table (it's repeated, take one)
-        warsh_surah_info = db.query(Warsh.verse_count).filter(Warsh.sura_no == surah_id).first()
-        total_ayahs = warsh_surah_info[0] if warsh_surah_info else 0
+        chapter_info_for_total = db.query(Chapters.verses_count).filter(Chapters.id == surah_id).first()
+        total_ayahs = chapter_info_for_total[0] if chapter_info_for_total else 0
+        print(f"LOG: Hafs - Fetched chapter_info_for_total: {chapter_info_for_total}")
+    else: # Warsh (mushaf_id == 2)
+        warsh_surah_info_for_total = db.query(Warsh.verse_count).filter(Warsh.sura_no == surah_id).first()
+        total_ayahs = warsh_surah_info_for_total[0] if warsh_surah_info_for_total else 0
+        print(f"LOG: Warsh - Fetched warsh_surah_info_for_total: {warsh_surah_info_for_total}")
 
-    if total_ayahs == 0: # Avoid division by zero if surah info not found
-        # Optionally log this situation
+    print(f"LOG: Calculated total_ayahs: {total_ayahs}")
+
+    if total_ayahs == 0:
+        print(f"ERROR: total_ayahs is 0. Returning early.")
+        print(f"--- update_surah_progress END (Early Return) ---\n")
         return
+    # --- End: Original logic for getting total_ayahs ---
 
+    # +++ Start: New logic to determine the Ayah ID boundary from errors +++
+    min_error_ayah_id_in_surah_range = None
+    range_start_id = None # Initialize to ensure they are defined
+    range_end_id = None   # Initialize to ensure they are defined
+    ayah_range_str = None
+
+    print(f"LOG: Attempting to fetch Ayah ID range from Chapters table...")
+    # The Chapters model is defined in your models.py file
+    # It has columns ayah_id_range_hafs and ayah_id_range_warsh
+    chapter_query_for_range = db.query(Chapters.ayah_id_range_hafs, Chapters.ayah_id_range_warsh)
+    
+    if mushaf_id == 1: # Hafs
+        # The Chapters model has an 'id' column used as primary key
+        chapter_details_for_range = chapter_query_for_range.filter(Chapters.id == surah_id).first()
+        if chapter_details_for_range:
+            ayah_range_str = chapter_details_for_range.ayah_id_range_hafs
+        print(f"LOG: Hafs - chapter_details_for_range: {chapter_details_for_range}")
+    elif mushaf_id == 2: # Warsh
+        # The Chapters model has a 'chapter_number' column
+        chapter_details_for_range = chapter_query_for_range.filter(Chapters.chapter_number == surah_id).first()
+        if chapter_details_for_range:
+            ayah_range_str = chapter_details_for_range.ayah_id_range_warsh
+        print(f"LOG: Warsh - chapter_details_for_range: {chapter_details_for_range}")
+    
+    print(f"LOG: Fetched ayah_range_str: '{ayah_range_str}'")
+
+    # --- MODIFIED PARSING LOGIC FOR BRACKETED RANGES ---
+    if ayah_range_str: 
+        processed_range_str = ayah_range_str
+        # Check for and remove surrounding brackets if they exist
+        if processed_range_str.startswith('[') and processed_range_str.endswith(']'):
+            processed_range_str = processed_range_str[1:-1] # Remove first and last char
+            print(f"LOG: Removed brackets, processed_range_str for hyphen check: '{processed_range_str}'")
+        
+        if '-' in processed_range_str: # Check for hyphen in the (potentially de-bracketed) string
+            try:
+                parts = processed_range_str.split('-', 1) # Split only on the first hyphen
+                if len(parts) == 2:
+                    start_str = parts[0].strip() 
+                    end_str = parts[1].strip()   
+                    range_start_id = int(start_str)
+                    range_end_id = int(end_str)
+                    print(f"LOG: Parsed range_start_id: {range_start_id}, range_end_id: {range_end_id}")
+
+                    print(f"LOG: Querying for min error Ayah ID in range ({range_start_id}-{range_end_id}) for user_id='{user_id}'...")
+                    # ErrorModel is WarshError or HafsError, both have user_id and ayah_id
+                    error_query = db.query(func.min(ErrorModel.ayah_id)).filter(
+                        ErrorModel.user_id == user_id,
+                        ErrorModel.ayah_id >= range_start_id,
+                        ErrorModel.ayah_id <= range_end_id
+                    )
+                    min_error_ayah_id_result = error_query.scalar() 
+                    print(f"LOG: min_error_ayah_id_result from query: {min_error_ayah_id_result}")
+                    
+                    if min_error_ayah_id_result is not None:
+                        min_error_ayah_id_in_surah_range = min_error_ayah_id_result
+                else:
+                    print(f"LOG: Malformed range string (after processing brackets and attempting split, not 2 parts): '{processed_range_str}'")
+            except ValueError as e:
+                print(f"LOG: ValueError parsing numeric range IDs from '{processed_range_str}'. Error: {e}")
+        else:
+            print(f"LOG: No hyphen found in processed_range_str: '{processed_range_str}'. Cannot parse range.")
+    else:
+        print(f"LOG: ayah_range_str is None or empty. Skipping error check based on range.")
+    # --- END OF MODIFIED PARSING LOGIC ---
+        
+    print(f"LOG: Final min_error_ayah_id_in_surah_range (boundary): {min_error_ayah_id_in_surah_range}")
+    # +++ End: New logic for Ayah ID boundary +++
+
+    print(f"LOG: Fetching or creating progress record for user_id='{user_id}', surah_id={surah_id}...")
     progress = db.query(ProgressModel).filter_by(user_id=user_id, surah_id=surah_id).first()
 
     if not progress:
+        print(f"LOG: No existing progress record found. Creating a new one.")
+        # ProgressModel (HafsSurahProgress/WarshSurahProgress) has columns: user_id, surah_id, ayahs_learned, total_ayahs, percentage
         progress = ProgressModel(
             user_id=user_id, # type: ignore
             surah_id=surah_id, # type: ignore
@@ -502,31 +583,54 @@ def update_surah_progress(db: Session, user_id: UUID, mushaf_id: int, surah_id: 
             percentage=0 
         )
         db.add(progress)
-        # db.commit() # Commit later after all updates
-        # db.refresh(progress) # Refresh after commit
+    else:
+        print(f"LOG: Existing progress record found. Current ayahs_learned: {progress.ayahs_learned}")
 
     current_learned_set = set(progress.ayahs_learned or [])
-    for ayah_id in ayah_ids:
-        current_learned_set.add(ayah_id)
+    print(f"LOG: Initial current_learned_set: {current_learned_set}")
     
-    progress.ayahs_learned = sorted(list(current_learned_set)) # Store as sorted list
-    progress.percentage = round((len(progress.ayahs_learned) / total_ayahs) * 100, 2) if total_ayahs > 0 else 0
+    if min_error_ayah_id_in_surah_range is not None:
+        print(f"LOG: Applying error boundary. Ayahs >= {min_error_ayah_id_in_surah_range} will be excluded from ayahs_learned.")
+        for ayah_id_val in ayah_ids: # renamed ayah_id to ayah_id_val to avoid conflict with ErrorModel.ayah_id
+            if ayah_id_val < min_error_ayah_id_in_surah_range:
+                current_learned_set.add(ayah_id_val)
+                print(f"LOG: Adding ayah_id {ayah_id_val} to learned_set (is < {min_error_ayah_id_in_surah_range}).")
+            else:
+                print(f"LOG: EXCLUDING ayah_id {ayah_id_val} from learned_set (is NOT < {min_error_ayah_id_in_surah_range}).")
+    else: 
+        print(f"LOG: No error boundary. Adding all provided ayah_ids to learned_set.")
+        for ayah_id_val in ayah_ids: # renamed ayah_id to ayah_id_val
+            current_learned_set.add(ayah_id_val)
+            print(f"LOG: Adding ayah_id {ayah_id_val} to learned_set (no boundary).")
     
-    # Decrement frequent errors for ayahs learned
-    for ayah_id in ayah_ids: # Iterate through newly confirmed learned ayahs
-        error_to_decrement = db.query(ErrorModel).filter_by(user_id=user_id, ayah_id=ayah_id).first()
+    updated_ayahs_learned_list = sorted(list(current_learned_set))
+    print(f"LOG: Updated ayahs_learned (before saving to DB): {updated_ayahs_learned_list}")
+    progress.ayahs_learned = updated_ayahs_learned_list
+    
+    new_percentage = round((len(progress.ayahs_learned) / total_ayahs) * 100, 2) if total_ayahs > 0 else 0
+    print(f"LOG: Calculated new percentage: {new_percentage}%")
+    progress.percentage = new_percentage
+    
+    print(f"LOG: Decrementing frequent errors (using original input ayah_ids: {ayah_ids})...")
+    for ayah_id_val in ayah_ids: # renamed ayah_id to ayah_id_val
+        error_to_decrement = db.query(ErrorModel).filter_by(user_id=user_id, ayah_id=ayah_id_val).first()
         if error_to_decrement:
+            print(f"LOG: Found error for ayah_id {ayah_id_val} with count {error_to_decrement.error_count}. Decrementing.")
             error_to_decrement.error_count -= 1
             if error_to_decrement.error_count <= 0:
+                print(f"LOG: Error count for ayah_id {ayah_id_val} is now <= 0. Deleting error record.")
                 db.delete(error_to_decrement)
     
-    db.commit() # Commit all changes (progress and error decrements)
-    db.refresh(progress) # Refresh progress object if needed later in the same session
-
-    # Update overall Quran memorization percentage
-    update_quran_memorization(db, user_id, mushaf_id)
-
-
+    print(f"LOG: Committing changes to database...")
+    db.commit()
+    if progress: 
+        db.refresh(progress)
+        print(f"LOG: Progress record refreshed. Final ayahs_learned in DB: {progress.ayahs_learned}, Percentage: {progress.percentage}%")
+    
+    print(f"LOG: Updating overall Quran memorization...")
+    update_quran_memorization(db, user_id, mushaf_id) # This function is defined elsewhere in crud.py
+    
+    print(f"--- update_surah_progress END ---\n")
 # === Global Memorization ===
 def update_quran_memorization(db: Session, user_id: UUID, mushaf_id: int):
     ProgressModel = HafsSurahProgress if mushaf_id == 1 else WarshSurahProgress

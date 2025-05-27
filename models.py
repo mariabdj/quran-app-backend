@@ -38,6 +38,8 @@ class Chapters(Base):
     verses_count: Mapped[Optional[int]] = mapped_column(Integer)
     chapter_number: Mapped[Optional[int]] = mapped_column(Integer)
     hizbs_count: Mapped[Optional[int]] = mapped_column(Integer)
+    ayah_id_range_hafs: Mapped[Optional[str]] = mapped_column(Text)
+    ayah_id_range_warsh: Mapped[Optional[str]] = mapped_column(Text)
 
 
 class Hizbs(Base):
