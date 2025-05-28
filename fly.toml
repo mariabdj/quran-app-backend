@@ -18,6 +18,6 @@ primary_region = 'mad'
 
 [[vm]]
   cpu_kind = "performance"
-  cpus = 2
-  memory = "4gb"
+  cpus = 1
+  memory = "2gb"
 
