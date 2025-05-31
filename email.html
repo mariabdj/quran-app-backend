@@ -46,6 +46,25 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
   );
 
+  // EXAMPLE signup function that uses emailRedirectTo
+  async function signUpUser(email, password) {
+    const { data, error } = await client.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        emailRedirectTo: 'https://mariabdj.github.io/quran-app-backend/email'
+      }
+    });
+
+    if (error) {
+      console.error(error);
+      alert('❌ Signup failed: ' + error.message);
+    } else {
+      alert('✅ Signup successful! Please check your email to confirm your account.');
+    }
+  }
+
+  // Existing confirmation logic (no changes needed)
   (async () => {
     const messageDiv = document.getElementById('message');
     const url = new URL(window.location.href);
@@ -67,9 +86,9 @@
       messageDiv.textContent = '✅ Your email has been successfully confirmed! You can now close this page.';
       messageDiv.style.color = 'green';
     }
+    console.log("Current URL:", window.location.href);
   })();
 </script>
-
 
 </body>
 </html>
