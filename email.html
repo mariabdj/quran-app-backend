@@ -14,80 +14,135 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      padding: 15px; /* Added padding for smaller screens */
+      box-sizing: border-box; /* Ensures padding doesn't add to width/height */
     }
     .container {
       background: #fff;
-      padding: 40px;
+      padding: 30px; /* Adjusted padding */
       border-radius: 10px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      width: 90%;
-      max-width: 400px;
+      width: 100%; /* Responsive width */
+      max-width: 450px; /* Slightly increased max-width */
       text-align: center;
+      box-sizing: border-box;
     }
     h2 {
       color: #192965;
+      margin-bottom: 20px; /* Added margin */
     }
     .message {
       margin-top: 20px;
       font-size: 16px;
       color: #333;
+      line-height: 1.5; /* Improved readability */
+    }
+    .message.success {
+      color: green;
+    }
+    .message.error {
+      color: red;
     }
   </style>
 </head>
 <body>
 <div class="container">
   <h2>📧 Email Confirmation</h2>
-  <p class="message" id="message">Confirming your email...</p>
+  <p class="message" id="message">Processing your confirmation...</p>
 </div>
 
 <script>
-    const client = supabase.createClient(
-  'https://psisudzbuphruzurwqpy.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
-);
+  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc';
+  const supabaseUrl = 'https://psisudzbuphruzurwqpy.supabase.co';
+  const client = supabase.createClient(supabaseUrl, supabaseAnonKey);
 
+  const messageDiv = document.getElementById('message');
+  const currentUrl = new URL(window.location.href);
+  const confirmationStatus = currentUrl.searchParams.get('confirmation_status');
+  const errorMessage = currentUrl.searchParams.get('error_message');
 
-  // EXAMPLE signup function that uses emailRedirectTo
+  const baseRedirectUrl = 'https://mariabdj.github.io/quran-app-backend/email';
+
+  // This example signUpUser function is for initiating sign-ups elsewhere in your app.
+  // It's not directly used by this confirmation page's primary logic.
   async function signUpUser(email, password) {
     const { data, error } = await client.auth.signUp({
       email: email,
       password: password,
       options: {
-        emailRedirectTo: 'https://mariabdj.github.io/quran-app-backend/email'
+        // This ensures Supabase redirects to this email.html page after user clicks link in email
+        emailRedirectTo: baseRedirectUrl 
       }
     });
 
     if (error) {
-      console.error(error);
-      alert('❌ Signup failed: ' + error.message);
+      console.error('Signup Error:', error);
+      // Avoid alert in production, use a proper UI element
+      alert('❌ Signup failed: ' + error.message); 
     } else {
       alert('✅ Signup successful! Please check your email to confirm your account.');
     }
   }
 
-  // Existing confirmation logic (no changes needed)
+  // Main logic for handling confirmation
   (async () => {
-    const messageDiv = document.getElementById('message');
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get('code');
-
-    if (!code) {
-      messageDiv.textContent = '❌ No confirmation code found in the URL.';
-      messageDiv.style.color = 'red';
-      return;
-    }
-
-    const { data, error } = await client.auth.exchangeCodeForSession({ code });
-
-    if (error) {
-      console.error(error);
-      messageDiv.textContent = '❌ Email confirmation failed.';
-      messageDiv.style.color = 'red';
+    if (confirmationStatus) {
+      // This means the page was reloaded with a status
+      if (confirmationStatus === 'success') {
+        messageDiv.textContent = '✅ Your email has been successfully confirmed! You are signed in.';
+        messageDiv.className = 'message success';
+      } else if (confirmationStatus === 'error') {
+        messageDiv.textContent = `❌ Email confirmation failed: ${decodeURIComponent(errorMessage || 'Unknown error')}. Please try again or contact support.`;
+        messageDiv.className = 'message error';
+      }
     } else {
-      messageDiv.textContent = '✅ Your email has been successfully confirmed! You can now close this page.';
-      messageDiv.style.color = 'green';
+      // This is the initial load, likely from the email link (URL might have a hash #...)
+      // Supabase client handles the hash automatically. We listen for auth changes.
+      console.log("Initial load for confirmation. Current URL:", window.location.href);
+
+      // Check for explicit errors in hash from Supabase redirect
+      if (window.location.hash.includes('error_description=')) {
+          const params = new URLSearchParams(window.location.hash.substring(1)); // Remove #
+          const errorDescription = params.get('error_description');
+          window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent(errorDescription || 'Verification link error')}`;
+          return; // Stop further processing
+      }
+      
+      let authEventReceived = false;
+
+      const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+        authEventReceived = true;
+        console.log("Auth State Change Event:", event, "Session:", session);
+
+        if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
+          if (subscription) subscription.unsubscribe();
+          // Redirect to this same page with success status
+          window.location.href = `${baseRedirectUrl}?confirmation_status=success`;
+        } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+          // This case might occur if the token is invalid or expired
+          if (subscription) subscription.unsubscribe();
+          window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent('Invalid or expired confirmation link.')}`;
+        }
+        // Other events like TOKEN_REFRESHED, USER_UPDATED are not primary for this redirect logic
+      });
+
+      // Fallback timeout: If no auth event occurs after a few seconds,
+      // it might mean the link was bad or already used, or tokens not in hash.
+      setTimeout(() => {
+        if (!authEventReceived) {
+          if (subscription) subscription.unsubscribe();
+          console.log("Timeout: No specific auth event received for confirmation.");
+          // Attempt to get current session to double check
+          client.auth.getSession().then(({ data: { session: currentSession } }) => {
+            if (currentSession && currentSession.user) {
+                 window.location.href = `${baseRedirectUrl}?confirmation_status=success`;
+            } else {
+                 window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent('Confirmation timeout or link already used.')}`;
+            }
+          });
+        }
+      }, 5000); // 5 seconds timeout
     }
-    console.log("Current URL:", window.location.href);
   })();
 </script>
 
