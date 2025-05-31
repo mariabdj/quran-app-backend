@@ -46,22 +46,30 @@
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
   );
 
-  async function confirmEmail() {
+  (async () => {
     const messageDiv = document.getElementById('message');
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
 
-    const { error } = await client.auth.getSession();
-    if (error) {
-      messageDiv.textContent = '❌ Failed to confirm email. Please try again or contact support.';
+    if (!code) {
+      messageDiv.textContent = '❌ No confirmation code found in the URL.';
       messageDiv.style.color = 'red';
       return;
     }
 
-    messageDiv.textContent = '✅ Your email has been successfully confirmed! You can now close this page.';
-    messageDiv.style.color = 'green';
-  }
+    const { data, error } = await client.auth.exchangeCodeForSession({ code });
 
-  confirmEmail();
+    if (error) {
+      console.error(error);
+      messageDiv.textContent = '❌ Email confirmation failed.';
+      messageDiv.style.color = 'red';
+    } else {
+      messageDiv.textContent = '✅ Your email has been successfully confirmed! You can now close this page.';
+      messageDiv.style.color = 'green';
+    }
+  })();
 </script>
+
 
 </body>
 </html>
