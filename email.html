@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Confirmation - Quran App</title>
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f9fc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    h2 {
+      color: #192965;
+    }
+    .message {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>📧 Email Confirmation</h2>
+  <p class="message" id="message">Confirming your email...</p>
+</div>
+
+<script>
+  const client = supabase.createClient(
+    'https://psisudzbuphruzurwqpy.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaXN1ZHpidXBocnV6dXJ3cXB5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTQ2NjE3NSwiZXhwIjoyMDU3MDQyMTc1fQ.hRs4_8CKGZNh43dorQVlf1uJbqbPCZ8glJFWxypvFXc'
+  );
+
+  async function confirmEmail() {
+    const messageDiv = document.getElementById('message');
+
+    const { error } = await client.auth.getSession();
+    if (error) {
+      messageDiv.textContent = '❌ Failed to confirm email. Please try again or contact support.';
+      messageDiv.style.color = 'red';
+      return;
+    }
+
+    messageDiv.textContent = '✅ Your email has been successfully confirmed! You can now close this page.';
+    messageDiv.style.color = 'green';
+  }
+
+  confirmEmail();
+</script>
+
+</body>
+</html>
