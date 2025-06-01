@@ -88,60 +88,8 @@
   (async () => {
     if (confirmationStatus) {
       // This means the page was reloaded with a status
-      if (confirmationStatus === 'success') {
         messageDiv.textContent = '✅ Your email has been successfully confirmed! You are signed in.';
         messageDiv.className = 'message success';
-      } else if (confirmationStatus === 'error') {
-        messageDiv.textContent = `❌ Email confirmation failed: ${decodeURIComponent(errorMessage || 'Unknown error')}. Please try again or contact support.`;
-        messageDiv.className = 'message error';
-      }
-    } else {
-      // This is the initial load, likely from the email link (URL might have a hash #...)
-      // Supabase client handles the hash automatically. We listen for auth changes.
-      console.log("Initial load for confirmation. Current URL:", window.location.href);
-
-      // Check for explicit errors in hash from Supabase redirect
-      if (window.location.hash.includes('error_description=')) {
-          const params = new URLSearchParams(window.location.hash.substring(1)); // Remove #
-          const errorDescription = params.get('error_description');
-          window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent(errorDescription || 'Verification link error')}`;
-          return; // Stop further processing
-      }
-      
-      let authEventReceived = false;
-
-      const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
-        authEventReceived = true;
-        console.log("Auth State Change Event:", event, "Session:", session);
-
-        if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session)) {
-          if (subscription) subscription.unsubscribe();
-          // Redirect to this same page with success status
-          window.location.href = `${baseRedirectUrl}?confirmation_status=success`;
-        } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
-          // This case might occur if the token is invalid or expired
-          if (subscription) subscription.unsubscribe();
-          window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent('Invalid or expired confirmation link.')}`;
-        }
-        // Other events like TOKEN_REFRESHED, USER_UPDATED are not primary for this redirect logic
-      });
-
-      // Fallback timeout: If no auth event occurs after a few seconds,
-      // it might mean the link was bad or already used, or tokens not in hash.
-      setTimeout(() => {
-        if (!authEventReceived) {
-          if (subscription) subscription.unsubscribe();
-          console.log("Timeout: No specific auth event received for confirmation.");
-          // Attempt to get current session to double check
-          client.auth.getSession().then(({ data: { session: currentSession } }) => {
-            if (currentSession && currentSession.user) {
-                 window.location.href = `${baseRedirectUrl}?confirmation_status=success`;
-            } else {
-                 window.location.href = `${baseRedirectUrl}?confirmation_status=error&error_message=${encodeURIComponent('Confirmation timeout or link already used.')}`;
-            }
-          });
-        }
-      }, 5000); // 5 seconds timeout
     }
   })();
 </script>
